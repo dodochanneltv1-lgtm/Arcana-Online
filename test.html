@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcana Online: Universal Registry (Characters & NPCs)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #020617; color: #e2e8f0; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #3b82f6; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #60a5fa; }
+        
+        table { border-collapse: collapse; width: 100%; min-width: 1200px; }
+        th { background-color: #0f172a; position: sticky; top: 0; z-index: 10; border-bottom: 2px solid #3b82f6; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #1e293b; }
+        tr:hover { background-color: #0f172a; transition: background-color 0.2s; }
+        
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        
+        #toast { visibility: hidden; min-width: 250px; background-color: #10b981; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 50; right: 30px; bottom: 30px; font-size: 16px; opacity: 0; transition: opacity 0.3s, visibility 0.3s; }
+        #toast.show { visibility: visible; opacity: 1; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Arcana Online Registry</h1>
+                <p class="text-slate-400 mt-1">ฐานข้อมูลตัวละคร และ NPCs</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="switchTab('players')" id="tab-players" class="tab-btn active px-6 py-2 rounded-full border border-slate-600 hover:bg-slate-800 font-medium">ผู้เล่น (Players)</button>
+                <button onclick="switchTab('npcs')" id="tab-npcs" class="tab-btn px-6 py-2 rounded-full border border-slate-600 hover:bg-slate-800 font-medium">NPCs</button>
+            </div>
+        </header>
+
+        <!-- ระบบค้นหา & คัดลอกข้อมูล (Export) -->
+        <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+            <div class="relative w-full md:w-1/2 lg:w-1/3">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาชื่อ, กิลด์, คลาส, เลเวล..." class="w-full pl-10 pr-4 py-2 bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-slate-200 placeholder-slate-500 transition-all shadow-inner">
+            </div>
+            
+            <button onclick="exportToCSV()" class="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 transform hover:-translate-y-0.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                คัดลอกข้อมูล (TSV)
+            </button>
+        </div>
+
+        <!-- ตารางผู้เล่น -->
+        <div id="view-players" class="bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden block">
+            <div class="overflow-x-auto h-[600px]">
+                <table id="playersTable">
+                    <thead>
+                        <tr>
+                            <th class="w-16">ID</th>
+                            <th>ชื่อในเกม</th>
+                            <th>เพศ</th>
+                            <th>คลาส</th>
+                            <th>ตำแหน่ง</th>
+                            <th>กิลด์</th>
+                            <th>เลเวล</th>
+                            <th class="min-w-[300px]">สเตตัส</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playersBody" class="text-sm">
+                        <!-- โหลดข้อมูลด้วย JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ตาราง NPCs -->
+        <div id="view-npcs" class="bg-slate-900 rounded-xl border border-slate-800 shadow-2xl overflow-hidden hidden">
+            <div class="overflow-x-auto h-[600px]">
+                <table id="npcsTable">
+                    <thead>
+                        <tr>
+                            <th>ชื่อ NPC</th>
+                            <th>ฉายา/หน้าที่</th>
+                            <th>สถานที่พบ</th>
+                            <th>แอนิเมชัน/พฤติกรรม</th>
+                            <th>ปรากฏตัวครั้งแรก</th>
+                        </tr>
+                    </thead>
+                    <tbody id="npcsBody" class="text-sm">
+                        <!-- โหลดข้อมูลด้วย JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- แจ้งเตือนเมื่อคัดลอกสำเร็จ -->
+    <div id="toast" class="flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+        คัดลอกข้อมูลลง Clipboard แล้ว! นำไปวางใน Excel ได้เลย
+    </div>
+
+    <script>
+        let currentTab = 'players';
+
+        // ฐานข้อมูลผู้เล่นที่แก้ไขให้ตรงตาม Lore ล่าสุด
+        const playersData = [
+            { id: "1", name: "ยูริ (ยูจิ/แฟนธอม)", gender: "หญิง (ตัวจริงชาย)", class: "นักปราชญ์", role: "ซัพพอร์ต", guild: "วิหคแดง", level: 30, status: "STR:10, AGI:27, INT:10, WIS:38, CON:10, CHA:50, LUK:25" },
+            { id: "2", name: "โยฮัน", gender: "ชาย", class: "Crimson Vanguard", role: "ไฟเตอร์", guild: "วิหคแดง (หัวหน้ากิลด์)", level: 500, status: "STR:350, AGI:150, INT:10, WIS:20, CON:300, CHA:32, LUK:160" },
+            { id: "3", name: "แฟนธอม", gender: "ชาย", class: "Phantom Blade", role: "ไฟเตอร์", guild: "วิหคแดง (รองหัวหน้า)", level: 490, status: "STR:252, AGI:352, INT:10, WIS:12, CON:122, CHA:2, LUK:252" },
+            { id: "4", name: "หมูกรอบ", gender: "ไม่ระบุ", class: "ไม่ระบุ", role: "ซัพพอร์ต", guild: "วิหคเงิน (โยฮันยืมตัวมา)", level: 400, status: "รอกำหนด" },
+            { id: "5", name: "กาดิออส", gender: "ชาย", class: "Tank Master", role: "แทงค์", guild: "วิหคแดง", level: 440, status: "รอกำหนด" },
+            { id: "6", name: "คาน่อน", gender: "ชาย", class: "Mage Master", role: "นักเวทย์", guild: "วิหคเงิน (หัวหน้ากิลด์)", level: 439, status: "รอกำหนด" }
+        ];
+
+        // ฐานข้อมูล NPC
+        const npcsData = [
+            { name: "ลุงหนวด", title: "เจ้าของร้านขายยา", loc: "ร้านขายยา ในเมืองเริ่มต้น", ai: "ยืนนิ่งอยู่หลังเคาน์เตอร์ ท่าทางแข็งทื่อ มือซ้ายท้าวเอว มือขวาลูบหนวด เป็น Idle Animation ที่จะเล่นซ้ำทุก ๆ สิบวินาที", first_seen: "ตอนที่ 2" }
+        ];
+
+        function renderPlayers() {
+            const tbody = document.getElementById('playersBody');
+            tbody.innerHTML = '';
+            playersData.forEach(p => {
+                // แยกสีกิลด์ให้เห็นชัดเจน
+                let guildColor = p.guild.includes("วิหคแดง") ? "text-red-400 font-medium" : p.guild.includes("วิหคเงิน") ? "text-slate-300 font-medium" : "text-slate-400";
+                
+                // ทำไฮไลท์ตัวอักษร "โยฮันยืมตัวมา"
+                let guildDisplay = p.guild;
+                if(p.guild.includes("(โยฮันยืมตัวมา)")) {
+                    guildDisplay = p.guild.replace("(โยฮันยืมตัวมา)", "<span class='text-amber-400 text-xs ml-1 italic'>(โยฮันยืมตัวมา)</span>");
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="text-slate-500">${p.id}</td>
+                        <td class="font-medium text-white">${p.name}</td>
+                        <td class="text-slate-300">${p.gender}</td>
+                        <td class="text-blue-300">${p.class}</td>
+                        <td><span class="px-2 py-1 bg-slate-800 rounded text-xs border border-slate-700 text-blue-100">${p.role}</span></td>
+                        <td class="${guildColor}">${guildDisplay}</td>
+                        <td class="text-emerald-400 font-bold">${p.level}</td>
+                        <td class="text-slate-400 text-xs">${p.status}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderNPCs() {
+            const tbody = document.getElementById('npcsBody');
+            tbody.innerHTML = '';
+            npcsData.forEach(n => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="font-medium text-amber-300">${n.name}</td>
+                        <td class="text-slate-200">${n.title}</td>
+                        <td class="text-blue-200">${n.loc}</td>
+                        <td class="text-slate-400 text-xs max-w-md">${n.ai}</td>
+                        <td><span class="px-2 py-1 bg-slate-800 rounded text-xs text-purple-300 border border-slate-700">${n.first_seen}</span></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('view-players').classList.toggle('hidden', tab !== 'players');
+            document.getElementById('view-npcs').classList.toggle('hidden', tab !== 'npcs');
+            
+            document.getElementById('tab-players').classList.toggle('active', tab === 'players');
+            document.getElementById('tab-npcs').classList.toggle('active', tab === 'npcs');
+            
+            // รีเซ็ตการค้นหาเมื่อเปลี่ยนแท็บ
+            document.getElementById('searchInput').value = '';
+            searchTable();
+        }
+
+        function searchTable() {
+            const input = document.getElementById("searchInput").value.toLowerCase();
+            const tableId = currentTab === 'players' ? 'playersTable' : 'npcsTable';
+            const tr = document.getElementById(tableId).getElementsByTagName("tr");
+
+            for (let i = 1; i < tr.length; i++) {
+                let rowText = tr[i].textContent.toLowerCase();
+                tr[i].style.display = rowText.includes(input) ? "" : "none";
+            }
+        }
+
+        function exportToCSV() {
+            let tsvContent = "";
+            if (currentTab === 'players') {
+                tsvContent += "ID\tชื่อในเกม\tเพศ\tคลาส\tตำแหน่ง\tกิลด์\tเลเวล\tสเตตัส\n";
+                playersData.forEach(p => {
+                    const row = [p.id, p.name, p.gender, p.class, p.role, p.guild, p.level, p.status];
+                    tsvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join('\t') + "\n";
+                });
+            } else {
+                tsvContent += "ชื่อ NPC\tฉายา/หน้าที่\tสถานที่พบ\tแอนิเมชัน/พฤติกรรม\tปรากฏตัวครั้งแรก\n";
+                npcsData.forEach(n => {
+                    const row = [n.name, n.title, n.loc, n.ai, n.first_seen];
+                    tsvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join('\t') + "\n";
+                });
+            }
+
+            const textArea = document.createElement("textarea");
+            textArea.value = tsvContent;
+            textArea.style.position = "fixed"; textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus(); textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 4000);
+            } catch (err) {
+                alert("เบราว์เซอร์ไม่รองรับการคัดลอก กรุณาคลุมดำข้อความและกด Ctrl+C");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        // Init Data
+        renderPlayers();
+        renderNPCs();
+    </script>
+</body>
+</html>

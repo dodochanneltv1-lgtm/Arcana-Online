@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcana Online: Boss Ecology Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        table { border-collapse: collapse; width: 100%; min-width: 1500px; }
+        th { background-color: #1e293b; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 2px -1px rgba(0,0,0,0.4); }
+        tr:nth-child(even) { background-color: #162032; }
+        tr:hover { background-color: #334155; }
+        td, th { padding: 12px; border: 1px solid #334155; text-align: left; vertical-align: top; }
+        
+        .toast {
+            position: fixed; top: 20px; right: 20px; background-color: #10b981; color: white;
+            padding: 12px 24px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateX(150%); transition: transform 0.3s ease-in-out; z-index: 50;
+        }
+        .toast.show { transform: translateX(0); }
+    </style>
+</head>
+<body class="p-6">
+
+    <div id="toast" class="toast">คัดลอกข้อมูลสำเร็จ! นำไปวาง (Ctrl+V) ที่เซลล์ A1 ใน Google Sheets ได้เลย</div>
+
+    <div class="max-w-full mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-blue-400 drop-shadow-lg">Arcana Online</h1>
+                <h2 class="text-xl text-gray-400">Boss Ecology & Advanced Mechanics Terminal</h2>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="copyTable()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg flex items-center transition-all transform hover:scale-105">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    📋 คัดลอกลง Google Sheets
+                </button>
+                <button onclick="downloadCSV()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg flex items-center transition-all transform hover:scale-105">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    📥 โหลดไฟล์ CSV
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-slate-800 rounded-xl shadow-2xl overflow-x-auto border border-slate-700 h-[75vh] overflow-y-auto">
+            <table id="bossTable" class="text-sm">
+                <thead>
+                    <tr class="text-blue-300">
+                        <th class="w-16">Lv.</th>
+                        <th class="w-40">ชื่อบอส</th>
+                        <th class="w-40">สถานที่อยู่</th>
+                        <th class="w-64">สเตตัสบอส (7 สาย)</th>
+                        <th class="w-64">เงื่อนไขปะทะ (Mechanics)</th>
+                        <th class="w-48">รูปแบบการโจมตี</th>
+                        <th class="w-40">สกิลเด่น</th>
+                        <th class="w-48">จุดเด่น / จุดตาย</th>
+                        <th class="w-48">ไอเทมดรอป (โอกาส)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data injected via JS -->
+                </tbody>
+            </table>
+        </div>
+        <p class="text-slate-400 text-sm mt-4 text-center">* Advanced Analytics & Mechanics Synthesized by The Arch-Architect *</p>
+    </div>
+
+    <script>
+        // Data Schema: [Lv, Name, Location, Description(omitted for view, combined in copy), Stats, Conditions, AtkPattern, Skills, Weakness, Drops]
+        const bossData = [
+            // Lv 5 - 50 (Beginner Tier)
+            [5, "ราชาหมูป่าเขี้ยวเหล็ก", "ป่าเริ่มต้น (ลานดินแดง)", "STR:25 AGI:5 CON:20 INT:0 WIS:5 CHA:2 LUK:5", "ATK > 15 ถึงจะเจาะเกราะทะลุเข้า | LUK > 8 เพื่อติดคริติคอล 10% | AGI > 10 เพื่อหลบสกิลพุ่งชน", "พุ่งชนเป็นเส้นตรง มีระยะหน่วงก่อนพุ่ง", "[พุ่งทะลวงเหล็ก], [คำรามกึกก้อง]", "พลังโจมตีรุนแรง / แพ้การโจมตีด้านข้างหลังพุ่งชน", "เขี้ยวหมูป่าเหล็กกล้า (60%), ดาบเขี้ยวเหล็ก (5%)"],
+            [5, "หมาป่าจ่าฝูงขนเทา", "ป่าเริ่มต้น (หุบเขาเงาจันทร์)", "STR:15 AGI:25 CON:10 INT:2 WIS:5 CHA:5 LUK:10", "ATK > 8 ก็ตีเข้าเนื้อ | AGI > 15 เพื่อตีให้โดน (ความแม่นยำ) | โดนธาตุไฟดาเมจแรงขึ้น 150%", "กระโดดกัด และเรียกพวกรุมทึ้ง", "[ขย้ำคอหอย], [เสียงหอนเรียกฝูง]", "หลบหลีกสูง เรียกพวกเก่ง / เกราะบางและแพ้ธาตุไฟ", "เขี้ยวหมาป่า (70%), รองเท้าหนังหมาป่า (10%)"],
+            [10, "หัวหน้าเผ่าก็อบลินคลั่ง", "ถ้ำก็อบลิน (โถงชั้นล่าง)", "STR:40 AGI:20 CON:15 INT:5 WIS:10 CHA:2 LUK:20", "ATK > 20 เพื่อขัดจังหวะสกิล | M.ATK > 15 ตีเข้าเต็มแรง | LUK > 15 มีโอกาสดรอปของแรร์", "โจมตีระยะประชิดด้วยกระบองและเรียกสมุน", "[เรียกพวก], [ทุบทำลาย]", "ลูกน้องเยอะ กวนการร่ายเวท / พลังป้องกันต่ำ แพ้เวทหมู่ (AoE)", "โพชั่นเลือด x5 (100%), กระบองฝังตะปู (15%)"],
+            [10, "ราชินีสไลม์", "ทุ่งหญ้าหยาดน้ำค้าง", "STR:10 AGI:5 CON:60 INT:20 WIS:15 CHA:5 LUK:5", "ATK > 40 ถึงจะทะลุเจลยืดหยุ่น | M.ATK(สายฟ้า) > 20 ช็อตแกนกลางแตกคริ 200%", "กระโดดทับและยิงกระสุนน้ำลายหนืด", "[แยกร่างสไลม์], [กลืนกิน]", "กันกายภาพสูงมาก (ลดดาเมจ 80%) / แกนกลางคือจุดตายแพ้สายฟ้า", "เจลลี่สไลม์เข้มข้น (80%), คทาวารี (5%)"],
+            [15, "ราชินีแมงมุมพิษมรณะ", "รังแมงมุมมรณะ", "STR:25 AGI:60 CON:20 INT:40 WIS:25 CHA:10 LUK:15", "AGI > 35 เพื่อหลบเส้นใยพันธนาการ | WIS > 20 ลดดาเมจพิษ 30% | โดนไฟคริ 100%", "พ่นใยและพิษ สร้างดาเมจต่อเนื่อง (DoT)", "[พ่นใยพันธนาการ], [หมอกพิษกัดกร่อน]", "ดาเมจพิษทะลุเกราะกายภาพบังคับฮีล / แพ้ธาตุไฟขั้นสุด", "ต่อมพิษแมงมุม (70%), คทาใยแมงมุม (1%)"],
+            [15, "โจรป่าตาเดียว (มินิบอส NPC)", "ค่ายโจรหลังเขา", "STR:50 AGI:50 CON:25 INT:10 WIS:5 CHA:10 LUK:25", "ATK > 30 เพื่อฟันทะลุการ์ด | WIS > 15 เพื่อต้านตาบอดเวลาโดนปาฝุ่น", "ลอบโจมตีและฟันขวานคู่ต่อเนื่อง", "[ขวานคู่ทะลวง], [ปาฝุ่นพรางตา]", "โจมตีไวมาก ติดคริบ่อย / ต้านทานเวทต่ำมาก (WIS 5) แพ้สถานะหลับ", "ถุงเงินโจร (100%), แผนที่ขุมทรัพย์เก่า (5%)"],
+            [20, "อัศวินโครงกระดูกไร้นาม", "สุสานบรรพชน", "STR:70 AGI:15 CON:90 INT:5 WIS:30 CHA:0 LUK:10", "ATK > 75 หรือใช้อาวุธทุบ (Blunt) เจาะเกราะ | M.ATK(แสง) > 30 ละลายเกราะกระดูก 50%", "ฟาดฟันหนักหน่วงจังหวะตายตัว ยกโล่ป้องกัน", "[ดาบผ่าวิญญาณ], [โล่ศักดิ์สิทธิ์เสื่อมสลาย]", "ยกโล่กันดาเมจกายภาพ 80% / แพ้เวทธาตุแสงและสกิลฮีล (ฮีลทำดาเมจได้)", "ชิ้นส่วนเกราะขึ้นสนิม (80%), โล่อัศวินตกสวรรค์ (5%)"],
+            [25, "วิญญาณพยาบาท", "บึงหมอกมรณะ", "STR:0 AGI:30 CON:100 INT:80 WIS:70 CHA:15 LUK:30", "Immune กายภาพ 100% (ตีไม่เข้า) | M.ATK > 60 ดาเมจเวทถึงจะทำงาน", "โจมตีด้วยเวทมนตร์คำสาปและลดสเตตัส", "[เสียงคร่ำครวญวิญญาณ], [คำสาปดูดกลืน]", "สู้ด้วยกายภาพไม่ได้เลย / แพ้ดาเมจเวทล้วนๆ หรืออาวุธเคลือบแสง", "เศษวิญญาณ (100%), ผ้าคลุมหมอก (4%)"],
+            [30, "โกเลมศิลาโบราณ", "ซากปรักหักพังลอยฟ้า", "STR:100 AGI:5 CON:180 INT:10 WIS:40 CHA:0 LUK:15", "ATK > 150 ถึงจะเจาะหินเข้า | LUK > 35 เพื่อตีแกนกลางติดคริ 300% | CON แทงค์ > 60", "เคลื่อนไหวช้าสุดๆ โจมตีวงกว้างรุนแรง (AoE)", "[แผ่นดินไหว], [ลำแสงรูน]", "เกราะหนาตีธรรมดาแทบไม่ขึ้นเลือด / แกนหน้าอกคือจุดตายเมื่อมันเปิดออก", "แกนพลังงานโกเลม (100%), แหวนพิทักษ์ศิลา (10%)"],
+            [30, "นางไม้ต้องสาป (Dryad)", "ป่าลึกเขตวงกต", "STR:20 AGI:40 CON:50 INT:100 WIS:90 CHA:40 LUK:30", "WIS > 30 เพื่อต้านสถานะหลับจากละอองเกสร | ATK(Fire) เผาเถาวัลย์ลดเกราะบอส 50%", "ใช้เถาวัลย์ควบคุมพื้นที่และอัญเชิญมอนสเตอร์พืช", "[เถาวัลย์พันธนาการ], [เกสรพิษง่วงนอน]", "สกิลขัดจังหวะ (CC) เยอะมาก / แพ้ธาตุไฟอย่างรุนแรงไฟจะลามง่าย", "แก่นไม้เวทมนตร์ (50%), ตำราฮีลหมู่ (2%)"],
+            [40, "นักรบออร์คโลหิต", "ค่ายออร์คทะเลทรายแดง", "STR:180 AGI:30 CON:120 INT:10 WIS:20 CHA:5 LUK:20", "CON แทงค์ > 80 กันโดนสับตายในดาบเดียว | ยิ่งเลือดบอสน้อย ATK Requirement ยิ่งสูงขึ้น", "ยิ่งเลือดน้อยยิ่งตีแรงและเร็ว เน้นสับแหลก", "[บ้าคลั่ง (Berserk)], [ขวานผ่าปฐพี]", "เลือดต่ำ 30% ตีแรงมากเป็นทวีคูณ / ไม่มีสกิลป้องกัน ต้องเบิร์สให้ตายไว", "ขวานออร์คโลหิต (5%), แร่เหล็กแดง (70%)"],
+            [50, "มังกรดินวัยเยาว์", "รังมังกรเทียม", "STR:190 AGI:50 CON:220 INT:80 WIS:60 CHA:20 LUK:40", "ATK > 180 ทะลุเกล็ดมังกร | AGI > 60 วิ่งหนีท่ากระทืบพื้น | WIS > 40 ลดผลกรดละลายเกราะ", "พ่นกรดลดเกราะและพุ่งชนด้วยน้ำหนัก", "[ลมหายใจกรด], [กระทืบพื้นดินแยก]", "บอสตัวแรกที่ทำลายชุดเกราะผู้เล่นได้ชั่วคราว / เคลื่อนที่ช้าเลี้ยวไม่ค่อยทัน", "เกล็ดมังกรดิน (40%), หอกเกล็ดมังกร (3%)"],
+
+            // Lv 51 - 100 (Mid-Tier & Milestone)
+            [60, "มิโนทอร์ขวานยักษ์", "เขาวงกตใต้ดิน", "STR:240 AGI:60 CON:200 INT:15 WIS:40 CHA:10 LUK:30", "ATK > 200 | AGI > 80 หลบขวานกวาดล้าง | INT > 50 ใช้เวทสร้างภาพลวงตาได้ผล 100%", "เหวี่ยงขวานวงกว้าง และกระทืบพื้นชาร์จพุ่งชน", "[ขวานพายุหมุน], [พุ่งชนเขาวงกต]", "ทำลายฟอร์เมชันแทงค์ให้แตกกระจาย / ตาบอดสี ใช้ภาพลวงตาหลอกชนกำแพงได้", "เขาเขาวงกต (50%), ขวานมิโนทอร์ (4%)"],
+            [70, "โกเลมลาวา", "ภูเขาไฟระอุ", "STR:180 AGI:30 CON:300 INT:150 WIS:100 CHA:10 LUK:40", "M.ATK(Water) > 180 ทำให้ลาวาแข็งตัวเป็นหิน (DEF ลดฮวบ) | คนตีประชิดเลือดจะลดวิละ 2%", "ทำดาเมจเผาไหม้ (Burn) ต่อเนื่องแก่ผู้ที่เข้าใกล้", "[ระเบิดลาวา], [กอดรัดหลอมละลาย]", "สะท้อนดาเมจเป็นความร้อน สายตีประชิดสู้ยาก / โดนเวทน้ำแรงๆ ร่างจะแข็งเกราะแตก", "หินลาวา (70%), แกนภูเขาไฟ (10%)"],
+            [80, "ราชินีนางเงือกคลั่ง", "วิหารใต้บาดาล", "STR:80 AGI:150 CON:180 INT:320 WIS:280 CHA:150 LUK:90", "WIS > 100 ต้านมนต์สับสน (สับสน = บังคับกดสกิลมั่ว) | M.ATK(Lightning) คริติคอล +50%", "ร่ายเวทวารีควบคุมกระแสน้ำ ผลักเป้าหมาย", "[พายุวังน้ำวน], [บทเพลงบ้าคลั่ง]", "สกิล CC วงกว้างเต็มพื้นที่ / สู้ใต้น้ำใช้อาวุธไฟฟ้าจะช็อตสร้างดาเมจ x2", "ไข่มุกราชินี (20%), คทาปะการัง (2%)"],
+            [90, "ราชาไลแคน", "ป่าต้องห้ามคืนเดือนเพ็ญ", "STR:280 AGI:350 CON:180 INT:50 WIS:80 CHA:60 LUK:150", "AGI > 250 มองการโจมตีทัน | ATK อาวุธเงิน (Silver) > 150 ตัดการฟื้นฟูเลือดบอส 100%", "ความเร็วทะลุขีดจำกัด ข่วนรัวๆ ติดสถานะเลือดไหล", "[ร่ายรำกรงเล็บ], [หอนฟื้นฟูเลือด (Regen)]", "เลือดต่ำกว่า 50% ตีเร็วและดูดเลือด / แพ้อาวุธธาตุเงิน (Silver) อย่างรุนแรง", "กรงเล็บไลแคน (40%), ชุดเกราะหนังจันทรา (1%)"],
+            [100, "จ่าฝูงกระต่ายเขาเดี่ยว", "ทุ่งหญ้าสายลมกรด", "STR:200 AGI:450 CON:80 INT:50 WIS:80 CHA:40 LUK:200", "AGI > 200 ถึงจะมี Accuracy ฟันมันโดน | ATK > 150 วันฮิตคิลได้ถ้าล็อคเป้าทัน (เลือดน้อยมาก)", "Hit & Run ความเร็วแสง หาก AGI ต่ำกว่า 100 เห็นแค่เส้นแสง", "[สายลมทะลวงใจ], [มายาหูยาว]", "หลบหลีก 70% จับเป้าหมายยากสุดๆ / บางมาก หากถูกสตั๊นหรือแช่แข็งจะร่วงทันที", "ผ้าคลุมเบา [ของยูริ] (2%), เขาจ่าฝูง (10%)"],
+            [100, "โกเลมเพชร", "เหมืองแร่จุดลึกสุด", "STR:150 AGI:30 CON:500 INT:100 WIS:200 CHA:10 LUK:100", "ATK > 400 ถึงเจาะเพชรเข้า หรือ ผู้เล่นอาชีพ 'คนขุดแร่' ใช้สกิลเจาะ (Ignore DEF)", "ยิงเลเซอร์สะท้อนแสง ทับเป้าหมาย", "[Prism Laser], [เพชรแกร่งนิรันดร์]", "ภูมิคุ้มกันเวทมนตร์ 100% สะท้อนเวทกลับ / แพ้ทางคลาสสายอาชีพสร้างของ (Crafter)", "เศษเพชรดิบ (100%), โล่เพชรประกายแสง (1%)"],
+
+            // Lv 101 - 250 (High-Tier)
+            [150, "จอมเวทไร้หน้า", "หอสมุดมิติที่บิดเบี้ยว", "STR:50 AGI:200 CON:80 INT:500 WIS:450 CHA:100 LUK:150", "M.RES (ความต้านทานเวท) > 300 กันวันฮิตคิล | LUK > 200 ทะลุมิติหลบหลุมดำ", "ใช้เวททุกธาตุไร้คูลดาวน์ และลบบัพปาร์ตี้ (Dispel)", "[หลุมดำกลืนกิน], [เปลี่ยนกฎมิติ]", "ลบสุดยอดบัพทั้งทีมได้ในพริบตา / ร่างกายอ่อนแอมาก เจอสายแอสซาซินประชิดจะแพ้ทาง", "เศษหน้ากากไร้หน้า (30%), ตำรามิติ (1%)"],
+            [200, "เทวทูตตกสวรรค์", "วิหารแห่งการพิพากษาร้าง", "STR:450 AGI:300 CON:350 INT:450 WIS:400 CHA:200 LUK:250", "CON แทงค์ > 400 | AGI > 250 หลบท่าใหญ่ | ATK/M.ATK > 500 ขัดการร่ายพิพากษา", "ผสมผสานโจมตีกายภาพและเวทธาตุมืดแบบวงกว้าง", "[พิพากษาทมิฬ], [ปีกพายุขนนกเหล็ก]", "ท่าใหญ่ทำดาเมจเป็น % เลือดสูงสุด ทะลุเกราะ / คูลดาวน์ท่าใหญ่นานมีช่องโหว่โจมตีสวน", "ขนปีกสีดำ (10%), ดาบพิพากษาทมิฬ [Epic] (0.5%)"],
+            [250, "ราชินีซัคคิวบัส", "ปราสาทมายาแห่งราคะ", "STR:150 AGI:300 CON:250 INT:650 WIS:600 CHA:800 LUK:250", "CHA > 50 & WIS > 35 เพื่อต้านทานเวทมนตร์ควบคุมจิตใจ (Charm Resist 100%)", "เวทมนตร์ควบคุมจิตใจ ปั่นป่วนให้ผู้เล่นหันไปฆ่ากันเอง", "[จุมพิตสูบวิญญาณ], [มนต์เสน่ห์ลุ่มหลง]", "ทำปาร์ตี้แตก (Wipe) ไวมากถ้าไม่ต้านทาน / ทีมที่มี CHA/WIS สูง (อย่างยูริ) จะสู้ได้ง่ายดาย", "สร้อยคอซัคคิวบัส [ของยูริ] (0.1%), ปีกมายา (5%)"],
+            [250, "ราชาแวมไพร์สายเลือดแท้", "ปราสาทโลหิตราตรี", "STR:350 AGI:550 CON:300 INT:500 WIS:400 CHA:600 LUK:300", "ATK(Light) > 400 เบิร์สดาเมจ | AGI > 400 หลบเรเปียร์ | ต้องมีไอเทม 'ลิ่มไม้กางเขน' เพื่อหยุดฮีล", "ฟันดาบเรเปียร์ความเร็วแสง ดูดเลือด และแปลงเป็นค้างคาวอมตะ", "[ระบำโลหิต], [จมดิ่งสู่วิกาล (อมตะ 5 วิ)]", "รวดเร็วและฮีลแรงมาก ยิ่งสู้ยิ่งเลือดเต็ม / แพ้กระเทียมศักดิ์สิทธิ์และลิ่มไม้เจาะอก", "โลหิตแวมไพร์ (100%), ดาบเรเปียร์โลหิต (0.1%)"],
+
+            // Lv 251 - 500 (Epic Tier)
+            [325, "ฟีนิกซ์ทมิฬ", "ยอดเขารังเถ้าถ่าน", "STR:200 AGI:600 CON:450 INT:800 WIS:750 CHA:300 LUK:350", "DPS Check: ATK > 800 ตอนมันเป็นไข่เพื่อสกัดการจุติใหม่ | WIS > 200 ต้านการลด Max HP", "บินลอยฟ้า ฝนไฟมรณะเผาผลาญหลอดมานาและ Max HP", "[พายุเถ้าถ่าน], [จุติใหม่จากเถ้าถ่าน]", "มี 2 หลอดเลือด ชุบชีวิตตัวเองได้ 1 ครั้ง / ขัดจังหวะตอนชุบด้วยเวทน้ำศักดิ์สิทธิ์รุนแรง", "แก่นแท้เปลวเพลิง (10%), ขนนกฟีนิกซ์ทมิฬ (5%)"],
+            [400, "มังกรสายฟ้าโบราณ", "หุบเขาพายุคลั่ง", "STR:1000 AGI:800 CON:900 INT:950 WIS:700 CHA:400 LUK:450", "Positioning: ผู้เล่นต้องยืนห่างกัน 10 เมตร (Chain Lightning พุ่งหากันถ้าใกล้ไป) | ATK > 950", "โจมตีรวดเร็ว สายฟ้าชิ่งระหว่างผู้เล่น (Chain Lightning)", "[กัมปนาททลายเมฆา], [ลมหายใจอัสนีบาต]", "One-hit ปาร์ตี้ที่ยืนติดกัน ดาเมจทวีคูณเมื่อชิ่งโดนคนถัดไป / ท้องมังกรไม่มีเกล็ดสายฟ้ากัน", "เกล็ดมังกรสายฟ้า (10%), หอกอัสนีบาตโบราณ (0.2%)"],
+            [475, "ลิชลอร์ด", "สถาบันเวทมนตร์ใต้ดิน", "STR:200 AGI:400 CON:500 INT:1800 WIS:1500 CHA:400 LUK:500", "DPS Check ขั้นสุด: ต้องทำดาเมจ > 100,000 ภายใน 10 วินาทีเพื่อลบคำสาปสั่งตาย (Death Sentence)", "ร่ายเวทสั่งตายเป้าหมายเดี่ยว เรียกสมุนระดับบอสย่อยมาคุ้มกัน", "[อาณาเขตแห่งความตาย], [คำสาปสั่งตาย]", "เวทสั่งตายจะฆ่าเป้าหมายทันทีถ้าฮีลเลือดไม่เต็ม 100% / พลังป้องกันกายภาพต่ำมาก", "คทาลิชลอร์ด (0.1%), มงกุฎแห่งความตาย (1%)"],
+
+            // Lv 501 - 1000 (Mythic & End-Game Tier)
+            [600, "ผู้กลืนกินดวงดาว", "มิติสูญญากาศ", "STR:2000 AGI:800 CON:2500 INT:2200 WIS:1800 CHA:500 LUK:600", "LUK > 650 เอาตัวรอดจากหลุมดำ (อิงโชค) | ต้องการ Ultimate Buff จากซัพพอร์ตระดับท็อป (ยูริ)", "สร้างหลุมดำดึงผู้เล่นไปบดขยี้ ดาเมจเพิกเฉยต่อเกราะ", "[กลืนกินแสงสว่าง], [ระเบิดเนบิวลา]", "ไม่มีรูปแบบโจมตีตายตัว หลบยากมาก / แพ้พลังงานบริสุทธิ์หรือสถานะอมตะชั่วคราว", "ผลึกดวงดาว (100%), ดาบกาแล็กซี่ (0.05%)"],
+            [700, "ราชินีมังกรน้ำแข็ง", "ยอดเขาศูนย์องศาสัมบูรณ์", "STR:2200 AGI:1500 CON:3000 INT:3500 WIS:2800 CHA:1200 LUK:900", "ATK > 3500 หรือใช้ไฟ 3000 ดีกรี เจาะเกราะน้ำแข็ง | WIS > 1500 (ต้านการถูกแช่แข็งลด AGI=0)", "สร้างโดมน้ำแข็งแช่แข็งเวลา ลดสเตตัสความเร็วเป็นศูนย์", "[ลมหายใจเยือกแข็งนิรันดร์], [กระจกสะท้อนเวท]", "หยุดการเคลื่อนไหวปาร์ตี้ทั้งหมดอย่างสมบูรณ์ / หากเจาะเกราะน้ำแข็งที่อกแตก บอสรับดาเมจ x5", "หัวใจน้ำแข็ง (1%), ปีกราชินีมังกร (5%)"],
+            [800, "จ้าวแห่งขุมนรกบัลร็อก", "แกนกลางนรกอเวจี", "STR:4500 AGI:1800 CON:4200 INT:1800 WIS:2000 CHA:1500 LUK:1200", "CON > 1200 รับดาเมจแส้ 1 ทีไม่ตาย (Stat Check) | ATK(Holy) > 4000 ฟันทะลุเกราะมาร", "ฟาดแส้ล้างบัพซัพพอร์ตทั้งหมด รัศมีไฟนรกเผาเลือด % ทะลุเกราะ", "[แส้เพลิงกระชากวิญญาณ], [ดาบทำลายล้างมิติ]", "Stat Check Boss (ถ้าเลือด/เกราะปาร์ตี้ไม่ถึงเกณฑ์ โดนกวาดตายในท่าเดียว) / แพ้ธาตุแสงศักดิ์สิทธิ์", "แส้ไฟนรก [Legendary] (0.01%), เกราะมารบัลร็อก (0.05%)"],
+            [900, "เทพธิดาแห่งการลืมเลือน", "ปราสาทแห่งกาลเวลา", "STR:1500 AGI:4000 CON:2500 INT:5500 WIS:6000 CHA:4500 LUK:1500", "Burst DMG Requirement: ต้องเบิร์สให้ตายใน 5 วินาที ก่อนเธอจะร่าย 'ย้อนเวลาบาดแผล'", "ควบคุมเวลา ทำสกิลผู้เล่นติดคูลดาวน์ถาวร หรือย้อนเลือดตัวเองเต็มหลอด", "[ย้อนเวลาบาดแผล], [ลบเลือนความทรงจำ]", "ป่วนระบบ UI เกมของผู้เล่น (ลบปุ่มสกิลชั่วคราว) / ต้องใช้สกิลประสานที่สร้างดาเมจฉับพลันสูงสุด", "นาฬิกาทรายกาลเวลา (0.01%), แหวนผู้ก้าวข้ามเวลา (0.1%)"],
+            [1000, "บาฮามุท ราชันย์มังกรผู้สร้าง", "มิติผู้สร้างสรรค์ (จุดสูงสุด)", "STR:9999 AGI:9999 CON:9999 INT:9999 WIS:9999 CHA:9999 LUK:9999", "ต้องมีไอเทมคีย์ลับ [ศิลาแห่งผู้สร้าง] ติดตัว มิฉะนั้นดาเมจที่ทำได้คือ '0' ถาวร", "คำรามล้างแมพ ลำแสงเลเซอร์อนุภาคระดับพระเจ้า เพิกเฉยสถานะอมตะของผู้เล่น", "[Ultima Breath], [กฎแห่งการทำลายล้าง]", "บอสเอนด์เกมที่แท้จริง ต้องใช้ผู้เล่นนับร้อย (Raid Boss 100+) / ต้องมีศิลาเพื่อลบเกราะอมตะ", "ไข่มังกรบาฮามุท (0.001%), เซ็ตเกราะผู้ก้าวข้ามขีดจำกัด (0.01%)"],
+
+            // Lv 1001 - 1500 (World Bosses / System Calamities / Glitches)
+            [1125, "เลเวียธาน เทพอสูรบรรพกาล", "รอยแยกแห่งมหาสมุทรคลั่ง", "STR:15000 AGI:8000 CON:25000 INT:12000 WIS:15000 CHA:8000 LUK:6000", "Alliance Requirement: กิลด์วอร์ร่วมมือกันตีทำลายคริสตัลรอบแมพ 10 เสาพร้อมกันใน 1 นาที", "โจมตีพร้อมกันทั้งเซิร์ฟเวอร์ (Global Event) สร้างสึนามิล้างเมือง", "[คลื่นล้างโลก], [เสียงคำรามแห่งอเวจีน้ำ]", "สเกลพลังทำลายเมือง (แมพพังจริง) / เลือดเยอะจนเป็นอนันต์ ต้องพึ่งคริสตัลยิงเลเซอร์ลดเกราะ", "เศษเสี้ยวแก่นโลก (ทุกคนที่รอด), อาวุธระดับ Mythic (0.0001%)"],
+            [1250, "จุดจบของสรรพสิ่ง (World Ender Glitch)", "รอยแตกของระบบเกม (Void)", "STR:ERROR AGI:ERROR CON:ERROR INT:ERROR WIS:ERROR CHA:ERROR LUK:ERROR", "ระบบจะล็อคสเตตัสผู้เล่นให้เป็น Level 1 ชั่วคราว (Mechanic Fight ล้วนๆ ห้ามพลาดแม้แต่ก้าวเดียว)", "แทรกแซงโค้ดเกม แฮกหน้าจอผู้เล่นให้จอมืด หรือสลับปุ่มเดิน W A S D ไปมา", "[System Override], [Delete File (ลบตัวละครชั่วคราว 24 ชม.)]", "เพิกเฉยต่อสเตตัสของผู้เล่น เลเวลไม่มีความหมาย / ต้องให้สายซัพพอร์ตใช้สกิลล้าง Error Code", "ไอเทมระดับ Admin, เศษซากแห่งความว่างเปล่า (10%)"],
+            [1375, "อวตารแห่งความสิ้นหวัง (GM Shadow)", "ลานประหารแห่งความว่างเปล่า", "STR:SYSTEM_MAX AGI:SYSTEM_MAX CON:SYSTEM_MAX INT:SYSTEM_MAX WIS:SYSTEM_MAX", "ต้องมีผู้เล่นสายคุมจังหวะ (Control) ใบ้ (Silence) บอสตลอดเวลา ห้ามให้มันพิมพ์คำสั่งได้", "ใช้คำสั่ง Console Command เพื่อทำดาเมจ (เช่น พิมพ์ /kill player1)", "[/Kill Target], [/Set Target HP 1]", "บอสโกงเกม (พิมพ์แชทฆ่าคน) / แพ้สกิล Silence ขั้นรุนแรงที่ไม่สามารถถูกล้างได้", "ผ้าคลุม GM ขาดวิ่น (5%), เคียวความสิ้นหวัง [Mythic] (0.0001%)"],
+            [1500, "อาร์คาน่าคอร์ (ระบบเกมผู้คุมกฎ)", "แกนกลางเซิร์ฟเวอร์หลัก", "ALL STATS: INFINITE (อนันต์ในทุกมิติของระบบ)", "ผู้เล่นต้องทำเควสปลดล็อค 'ปณิธานแห่งเพลเยอร์' ก่อนเริ่มสู้ ไม่งั้นโดนล้างไอดีทันที", "จำลองร่างโคลนของผู้เล่นที่เก่งที่สุดในเซิร์ฟเวอร์ (เช่น ร่างโคลนแฟนธอม) ออกมาสู้แทนตัวมัน", "[Copy & Paste], [Server Wipe (ล้างข้อมูลทั้งเซิร์ฟเวอร์)]", "คือพระเจ้าของเกม ตีธรรมดาไม่เข้า ระบบสเตตัสไร้ผล / การต้านทานการลบเซิร์ฟเวอร์คือหนทางชนะ", "สิทธิพิเศษผู้ดูแลระบบ (Admin Privilege ชั่วคราว), ฉายา [ผู้โค่นล้มพระเจ้า]"]
+        ];
+
+        const statColors = {
+            'STR': 'text-red-400 bg-red-900/40 border-red-700/50',
+            'AGI': 'text-emerald-400 bg-emerald-900/40 border-emerald-700/50',
+            'CON': 'text-orange-400 bg-orange-900/40 border-orange-700/50',
+            'INT': 'text-blue-400 bg-blue-900/40 border-blue-700/50',
+            'WIS': 'text-indigo-400 bg-indigo-900/40 border-indigo-700/50',
+            'CHA': 'text-pink-400 bg-pink-900/40 border-pink-700/50',
+            'LUK': 'text-yellow-400 bg-yellow-900/40 border-yellow-700/50',
+            'ALL': 'text-purple-400 bg-purple-900/40 border-purple-700/50'
+        };
+
+        function formatStats(statStr) {
+            if (statStr.includes("ERROR") || statStr.includes("INFINITE") || statStr.includes("SYSTEM_MAX")) {
+                return `<span class="inline-block px-2 py-1 text-xs font-bold font-mono text-red-200 bg-red-900 border border-red-500 rounded animate-pulse w-full text-center tracking-widest">${statStr}</span>`;
+            }
+            return statStr.split(' ').map(s => {
+                const [key, val] = s.split(':');
+                const style = statColors[key] || 'text-gray-300 bg-gray-800 border-gray-600';
+                return `<div class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-mono border m-0.5 ${style}">
+                            <span class="font-bold mr-1 opacity-80">${key}</span> 
+                            <span class="font-black drop-shadow">${val}</span>
+                        </div>`;
+            }).join('');
+        }
+
+        function formatConditions(condStr) {
+            return condStr.split('|').map(c => {
+                let badgeClass = 'text-slate-300 border-slate-600';
+                if(c.includes('ATK') || c.includes('DPS')) badgeClass = 'text-red-300 border-red-800 bg-red-950/30';
+                if(c.includes('LUK')) badgeClass = 'text-yellow-300 border-yellow-800 bg-yellow-950/30';
+                if(c.includes('WIS') || c.includes('INT')) badgeClass = 'text-blue-300 border-blue-800 bg-blue-950/30';
+                if(c.includes('AGI')) badgeClass = 'text-emerald-300 border-emerald-800 bg-emerald-950/30';
+                if(c.includes('CON')) badgeClass = 'text-orange-300 border-orange-800 bg-orange-950/30';
+                
+                return `<div class="text-[12px] mb-1 pl-2 border-l-2 ${badgeClass}">${c.trim()}</div>`;
+            }).join('');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            bossData.forEach(boss => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold text-emerald-400 border-b border-slate-700 text-center">${boss[0]}</td>
+                    <td class="font-semibold text-white border-b border-slate-700 whitespace-nowrap">${boss[1]}<br><span class="text-[10px] text-gray-500 font-normal truncate w-32 hidden md:inline-block mt-1">${boss[3].substring(0,30)}...</span></td>
+                    <td class="text-blue-200 border-b border-slate-700 text-xs">${boss[2]}</td>
+                    <td class="border-b border-slate-700">
+                        <div class="flex flex-wrap gap-0.5">${formatStats(boss[3])}</div>
+                    </td>
+                    <td class="border-b border-slate-700 font-mono tracking-tight bg-slate-800/50">${formatConditions(boss[4])}</td>
+                    <td class="text-slate-300 border-b border-slate-700 text-xs">${boss[5]}</td>
+                    <td class="text-amber-300 font-mono text-[11px] border-b border-slate-700">${boss[6]}</td>
+                    <td class="text-slate-300 border-b border-slate-700 text-xs">${boss[7]}</td>
+                    <td class="text-purple-300 border-b border-slate-700 text-xs">${boss[8]}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function copyTable() {
+            // Use TSV (Tab-Separated Values) for perfect Google Sheets/Excel copy-pasting
+            let tsvContent = "Lv.\tชื่อบอส\tสถานที่อยู่\tสเตตัสบอส\tเงื่อนไขปะทะและหลบหลีก\tรูปแบบการโจมตี\tสกิลเด่น\tจุดเด่นและจุดตาย\tไอเทมดรอป\n";
+            bossData.forEach(row => {
+                // Map the array and escape tabs/newlines for TSV format
+                const rowString = row.map((cell, index) => {
+                    let text = String(cell);
+                    if (text.includes('\t') || text.includes('\n')) {
+                        text = `"${text.replace(/"/g, '""')}"`;
+                    }
+                    return text;
+                }).join("\t");
+                tsvContent += rowString + "\n";
+            });
+
+            // Fallback copy mechanism to bypass iframe restrictions
+            const textArea = document.createElement("textarea");
+            textArea.value = tsvContent;
+            textArea.style.position = "fixed";  // Prevent scrolling to bottom
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast("คัดลอกสำเร็จ! กด Ctrl+V วางที่ช่อง A1 ใน Google Sheets ได้เลย ข้อมูลจะเข้าตารางเป๊ะ 100%");
+                } else {
+                    showToast("เบราว์เซอร์ของคุณปฏิเสธการคัดลอก กรุณาใช้ปุ่มโหลดไฟล์ CSV แทนครับ");
+                }
+            } catch (err) {
+                showToast("เบราว์เซอร์ของคุณปฏิเสธการคัดลอก กรุณาใช้ปุ่มโหลดไฟล์ CSV แทนครับ");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function downloadCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // Add BOM
+            csvContent += "Lv.,ชื่อบอส,สถานที่อยู่,สเตตัสบอส,เงื่อนไขปะทะและหลบหลีก,รูปแบบการโจมตี,สกิลเด่น,จุดเด่นและจุดตาย,ไอเทมดรอป\n";
+            
+            bossData.forEach(row => {
+                const escapedRow = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`);
+                csvContent += escapedRow.join(",") + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Arcana_Advanced_Boss_DB.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 5000);
+        }
+
+        renderTable();
+    </script>
+    <button class="fixed bottom-4 center-4 bg-blue-600 text-white px-4 py-2 rounded shadow-lg hover:bg-blue-700 transition" onclick="window.location.href='index.html'">กลับไปหน้าหลัก</button>
+</body>
+</html>

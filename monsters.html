@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcana Online: Normal Monster Compendium</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #020617; color: #e2e8f0; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        table { border-collapse: collapse; width: 100%; min-width: 1700px; }
+        th { background-color: #0f172a; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.5); border-bottom: 2px solid #3b82f6; }
+        tr:nth-child(even) { background-color: #0b1120; }
+        tr:nth-child(odd) { background-color: #0f172a; }
+        tr:hover { background-color: #1e293b; }
+        td, th { padding: 10px 14px; border: 1px solid #1e293b; text-align: left; vertical-align: top; }
+        
+        .toast {
+            position: fixed; top: 20px; right: 20px; background-color: #10b981; color: white;
+            padding: 12px 24px; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transform: translateX(150%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 50;
+        }
+        .toast.show { transform: translateX(0); }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+
+    <div id="toast" class="toast">✅ คัดลอกข้อมูลสำเร็จ! นำไปวาง (Ctrl+V) ที่เซลล์ A1 ใน Google Sheets ได้เลย</div>
+
+    <div class="max-w-full mx-auto flex flex-col h-[95vh]">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4 shrink-0">
+            <div>
+                <h1 class="text-3xl font-bold text-emerald-400 drop-shadow-lg tracking-wide">Arcana Online</h1>
+                <h2 class="text-xl text-slate-400 mt-1">Normal Monster Compendium (สารานุกรมมอนสเตอร์ทั่วไป)</h2>
+                <div class="mt-2 text-xs text-slate-500 flex gap-4">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Passive (รักสงบ)</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> Aggressive (ดุร้าย)</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Swarm (ฝูง/ลิงก์)</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500"></span> Looter (หัวขโมย)</span>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="copyTable()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-4 rounded-lg shadow-lg flex items-center transition-all transform hover:scale-105 border border-emerald-400/50">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    📋 คัดลอกลง Google Sheets
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-slate-900 rounded-xl shadow-2xl overflow-x-auto border border-slate-700 flex-1 relative">
+            <table id="monsterTable" class="text-[13px] w-full">
+                <thead>
+                    <tr class="text-emerald-300">
+                        <th class="w-16 text-center">Lv.</th>
+                        <th class="w-40">ชื่อมอนสเตอร์</th>
+                        <th class="w-32">สถานที่พบ</th>
+                        <th class="w-24 text-center">พฤติกรรม</th>
+                        <th class="w-48">รูปลักษณ์ลักษณะ</th>
+                        <th class="w-72 text-center">แต้มสเตตัส (7 สาย)</th>
+                        <th class="w-64">แทคติกการฟาร์ม / จุดอ่อน</th>
+                        <th class="w-48">ไอเทมดรอปหลัก (โอกาส)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Data injected via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Data Schema: [Lv, Name, Location, Aggro, Appearance, Stats, Tactics, Drops]
+        const monsterData = [
+            // --- Lv 1-20 : Beginner Zone (พื้นที่เริ่มต้น) ---
+            [1, "สไลม์หยาดน้ำค้าง", "ทุ่งหญ้าเริ่มต้น", "Passive", "ก้อนเจลลี่สีฟ้าใสขนาดเท่าลูกฟุตบอล เด้งดึ๋งไปมา", "STR:2 AGI:1 CON:15 INT:0 WIS:0 CHA:0 LUK:1", "ฟันด้วยของมีคมดาเมจลดครึ่งนึง ต้องใช้กระบองทุบ หรือเวทไฟเบิร์นให้ระเหย", "เจลลี่สไลม์เหนียวหนึบ (70%), เหรียญทองแดง (30%)"],
+            [2, "กระต่ายเขาหิน", "ป่าโปร่งเขตปลอดภัย", "Passive", "กระต่ายขนสีน้ำตาล มีหินก้อนเล็กๆ งอกแทนเขาบนหัว", "STR:3 AGI:18 CON:4 INT:0 WIS:2 CHA:5 LUK:5", "วิ่งหนีเร็วมากเมื่อถูกตี ต้องใช้นักธนูหรือเวทมนตร์ยิงล็อกเป้า", "เนื้อกระต่ายเหนียว (50%), หินลับมีด (20%)"],
+            [4, "เห็ดพิษเดินได้", "ใต้ร่มไม้ใหญ่ในป่า", "Passive", "เห็ดสีม่วงมีลายจุด มีขาสั้นๆ เดินเตาะแตะ", "STR:5 AGI:3 CON:25 INT:15 WIS:5 CHA:0 LUK:2", "ตายแล้วจะปล่อยละอองพิษรัศมี 2 เมตร (สถานะ: เลือดไหล) สายโจมตีประชิดต้องตีแล้วรีบถอย", "สปอร์เห็ดพิษ (40%), ยาแก้พิษระดับต่ำ (5%)"],
+            [5, "ก็อบลินลาดตระเวน", "ชายป่าใกล้ถ้ำ", "Aggressive", "สิ่งมีชีวิตสีเขียวตัวเล็กจมูกยาว นุ่งเตี่ยว ถือมีดสั้น", "STR:18 AGI:15 CON:10 INT:2 WIS:0 CHA:0 LUK:5", "ถ้ามันเห็นผู้เล่นจะตะโกนเรียกพวกใกล้ๆ 1-2 ตัวมารุม พลังป้องกันต่ำฟันทีเดียวตายได้", "มีดบิ่น (30%), ผ้าขี้ริ้วก็อบลิน (50%)"],
+            [8, "หมาป่าขนเทา", "หุบเขาเงาจันทร์", "Swarm", "หมาป่าขนาดมาตรฐาน ขนสีเทา ดวงตาสีเหลือง", "STR:25 AGI:30 CON:15 INT:0 WIS:5 CHA:2 LUK:8", "ระวังอย่าตีมันตอนอยู่ใกล้ฝูง ถ้ามันหอน ตัวอื่นๆ ในระยะ 20 เมตรจะวิ่งมารุมกัด", "เขี้ยวหมาป่า (40%), หนังหมาป่าขาดๆ (30%)"],
+            [10, "ค้างคาวดูดเลือด", "ภายในถ้ำมืด", "Aggressive", "ค้างคาวตัวเท่าไก่ เกาะอยู่ตามเพดานถ้ำ", "STR:15 AGI:40 CON:12 INT:20 WIS:5 CHA:0 LUK:10", "บินโฉบทำให้เล็งยาก การโจมตีของมันจะดูดเลือดผู้เล่นไปฟื้นฟูตัวเอง แพ้ธาตุไฟ", "ปีกค้างคาว (45%), เลือดปีศาจขวดเล็ก (10%)"],
+            [12, "แมงมุมถ้ำ", "ลึกเข้าไปในถ้ำ", "Aggressive", "แมงมุมสีดำขนาดเท่าสุนัข ชอบดักซุ่มบนเพดาน", "STR:18 AGI:45 CON:18 INT:30 WIS:10 CHA:0 LUK:12", "มันจะพ่นใยใส่ให้เราติดสถานะ [เชื่องช้า] ก่อนพุ่งเข้ามากัด แพ้ไฟอย่างรุนแรง", "เส้นใยแมงมุม (50%), ต่อมพิษ (15%)"],
+            [15, "โจรป่าปลายแถว", "ค่ายโจรหลังเขา", "Swarm", "NPC มนุษย์สวมผ้าโพกหัว ถือดาบเก่าๆ สนิมเขรอะ", "STR:40 AGI:25 CON:30 INT:5 WIS:5 CHA:10 LUK:15", "มีพฤติกรรมคล้ายผู้เล่น มีการยกดาบกันบ้าง (Block) ให้ฟาร์มด้วยการใช้สกิลทะลุการ์ด", "ถุงเงินโจร (60%), ดาบเหล็กระดับต่ำ (5%)"],
+            [18, "โจรป่าหน้าไม้", "ป้อมค่ายโจร", "Aggressive", "NPC มนุษย์ยืนอยู่บนหอคอยซุ่มยิง", "STR:20 AGI:55 CON:25 INT:15 WIS:15 CHA:10 LUK:35", "คอยยิงตอดเลือดจากระยะไกล ต้องให้สายแทงค์กางโล่บัง แล้วให้นักเวทยิงสวน", "ลูกดอกหน้าไม้ (80%), หน้าไม้ไม้โอ๊ค (2%)"],
+            [20, "โครงกระดูกเดินได้", "สุสานบรรพชน", "Aggressive", "โครงกระดูกมนุษย์ถือดาบผุพัง เดินกะเผลกๆ", "STR:55 AGI:15 CON:70 INT:0 WIS:25 CHA:0 LUK:5", "แพ้การทุบ (Blunt) อาวุธประเภทมีดแทงแทบไม่เข้า แพ้เวทมนตร์ธาตุแสง 200%", "กระดูกผุพัง (70%), ชิ้นส่วนดาบหัก (20%)"],
+
+            // --- Lv 21-50 : Early-Mid Game (พื้นที่ลึกและดันเจี้ยนแรก) ---
+            [22, "วิญญาณเร่ร่อน (Wisp)", "บึงหมอกมรณะ", "Passive", "ดวงไฟสีฟ้าลอยไปมา ไม่มีรูปร่างเนื้อหนัง", "STR:0 AGI:30 CON:10 INT:60 WIS:50 CHA:5 LUK:20", "ภูมิคุ้มกันกายภาพ 100% ต้องใช้นักเวทหรืออาวุธเคลือบเวทมนตร์โจมตีเท่านั้น", "ผงวิญญาณ (50%), เศษคริสตัลมานา (10%)"],
+            [25, "โคลนกินคน", "บึงหมอกมรณะ (เขตโคลน)", "Aggressive", "กองโคลนหนืดสีดำที่ก่อตัวเป็นรูปมือ", "STR:40 AGI:10 CON:85 INT:10 WIS:20 CHA:0 LUK:10", "ทำให้ผู้เล่นที่เหยียบติดสถานะ [ยึดติด] ขยับไม่ได้ 3 วิ ต้องใช้น้ำแข็งแช่ให้มันแข็งแล้วทุบ", "ก้อนโคลนเวทมนตร์ (60%)"],
+            [28, "ออร์คทหารราบ", "หุบเขาออร์ค", "Aggressive", "ออร์คร่างกำยำสีเขียวเข้ม สวมเกราะหนัง ถือขวาน", "STR:75 AGI:20 CON:70 INT:5 WIS:15 CHA:5 LUK:15", "โจมตีช้าแต่หนักหน่วงมาก สาย AGI สามารถพุ่งหลบและตลบหลังได้ง่าย", "เนื้อออร์ค (40%), ขวานทื่อ (10%), แร่ออร์ค (5%)"],
+            [30, "ก็อบลินหัวขโมย", "ทุกพื้นที่ (สุ่มเกิด)", "Looter", "ก็อบลินสะพายถุงกระสอบใบใหญ่ วิ่งเร็วมาก", "STR:10 AGI:120 CON:20 INT:10 WIS:20 CHA:0 LUK:80", "ไม่โจมตีผู้เล่น แต่มันจะวิ่งไปเก็บไอเทมที่ตกอยู่บนพื้นแล้วมุดดินหนี ต้องรีบฆ่าให้ตายภายใน 10 วิ", "ทองคำแท่ง (10%), ถุงสุ่มไอเทมระดับกลาง (100%)"],
+            [32, "กากอยล์หินศิลา", "ซากวิหารร้าง", "Passive", "รูปปั้นหินปีศาจมีปีก นั่งยองๆ ตามขอบหน้าต่าง", "STR:60 AGI:5 CON:110 INT:10 WIS:30 CHA:0 LUK:10", "อยู่ในสถานะเป็นรูปปั้น (กันดาเมจ 90%) จนกว่าผู้เล่นจะหันหลังให้ มันถึงจะขยับมาโจมตี", "เศษหินกากอยล์ (50%), อัญมณีเวท (5%)"],
+            [35, "ลิซาร์ดแมน", "ถ้ำบาดาลลึก", "Swarm", "มนุษย์กิ้งก่าสีน้ำเงิน ถือหอกและโล่กระดองเต่า", "STR:70 AGI:80 CON:90 INT:20 WIS:40 CHA:5 LUK:25", "อยู่ในน้ำจะเก่งขึ้นและว่ายน้ำเร็วมาก มีฟอร์เมชั่นตั้งโล่กันเวทมนตร์ได้ ต้องโจมตีทะลวงเกราะ", "เกล็ดกิ้งก่า (40%), หอกแทงปลา (8%)"],
+            [40, "สไลม์กรดหลอมละลาย", "ท่อระบายน้ำใต้เมือง", "Aggressive", "สไลม์สีเขียวเรืองแสง มีควันกรดลอยกรุ่น", "STR:50 AGI:30 CON:130 INT:70 WIS:45 CHA:0 LUK:15", "เมื่อโจมตีประชิด ความทนทาน (Durability) ของอาวุธผู้เล่นจะลดลงอย่างรวดเร็ว บังคับใช้เวทตี", "เจลกรดเข้มข้น (70%), แหวนต้านทานพิษ (1%)"],
+            [45, "ซอมบี้อัศวิน", "ค่ายทหารร้างร้อยปี", "Aggressive", "ศพทหารสวมเกราะเหล็กหนัก เดินลากขาแต่โจมตีหนัก", "STR:110 AGI:20 CON:140 INT:0 WIS:30 CHA:0 LUK:10", "อึดมากและไม่ติดสถานะสตั๊นหรือน็อกดาวน์ แต่แพ้ธาตุไฟและแสงอย่างรุนแรง", "แผ่นเหล็กขึ้นสนิม (50%), เหรียญทหารโบราณ (10%)"],
+            [50, "วิญญาณนักเวทฝึกหัด", "หอคอยเวทมนตร์ชั้นล่าง", "Aggressive", "ร่างเงาโปร่งแสงสวมชุดคลุม ถือคทาไม้จันทน์", "STR:15 AGI:40 CON:50 INT:150 WIS:120 CHA:10 LUK:30", "โจมตีระยะไกลด้วยกระสุนเวทตามธาตุ (ไฟ/น้ำ/ลม) หากเอาแทงค์ไปชนต้องมีเกราะป้องกันเวทสูง", "เศษกระดาษเวทมนตร์ (60%), คทาไม้หัก (5%)"],
+
+            // --- Lv 51-100 : Mid-Late Game (ฟาร์มของทำชุดระดับสูง) ---
+            [55, "หมาป่าเพลิง", "ตีนภูเขาไฟระอุ", "Swarm", "หมาป่าขนาดใหญ่ ขนสีแดงเพลิงลุกไหม้ตอลดเวลา", "STR:120 AGI:150 CON:80 INT:40 WIS:60 CHA:10 LUK:45", "การโจมตีทำให้ติดสถานะ [เผาไหม้] ลดเลือด % พุ่งเข้าชาร์จเป็นฝูง แพ้ธาตุน้ำขั้นสุด", "เขี้ยวหมาป่าเพลิง (30%), แก่นแท้ธาตุไฟ (5%)"],
+            [60, "มิโนทอร์ยามฝั่ง", "เขาวงกตชั้นนอก", "Aggressive", "มนุษย์วัวกล้ามโต ถือลูกตุ้มเหล็ก", "STR:180 AGI:50 CON:160 INT:10 WIS:30 CHA:5 LUK:30", "โจมตีเป็นวงกว้าง (Cleave) ห้ามนำตัวบางๆ (เช่น นักเวท) ไปยืนใกล้ระยะเหวี่ยงลูกตุ้มเด็ดขาด", "เขาวัวหัก (40%), โซ่ลูกตุ้มเหล็ก (10%)"],
+            [65, "นางไม้พิษ (Dryad)", "ป่าลึกเขตวงกต", "Passive", "ภูตต้นไม้จำแลงร่างเป็นหญิงสาวสวยงาม", "STR:30 AGI:80 CON:90 INT:200 WIS:180 CHA:120 LUK:50", "หากผู้เล่นหลงกลเดินเข้าไปใกล้ จะถูกรัดด้วยเถาวัลย์พิษและดูดมานาจนเกลี้ยง", "น้ำหวานนางไม้ (30%), กิ่งไม้เวทมนตร์ (15%)"],
+            [70, "ฮาร์ปี้ลมกรด", "หน้าผาสายลมคลั่ง", "Swarm", "ครึ่งคนครึ่งนกอินทรี บินอยู่บนท้องฟ้าเป็นฝูง", "STR:90 AGI:220 CON:70 INT:60 WIS:80 CHA:20 LUK:60", "โฉบลงมาโจมตีและพัดผู้เล่นตกหน้าผา ต้องใช้นักเวทหรือสายธนูยิงสกัดให้มันร่วงลงพื้น", "ขนนกฮาร์ปี้ (50%), กรงเล็บนกนักล่า (10%)"],
+            [80, "นักรบเงา (Shadow Warrior)", "วิหารใต้ดินแสงจันทร์", "Aggressive", "เงานักดาบสีดำสนิท เคลื่อนไหวไร้เสียง", "STR:180 AGI:250 CON:100 INT:50 WIS:90 CHA:10 LUK:100", "มีสกิล [ล่องหน] (Stealth) สามารถมุดเงามาโผล่ด้านหลังซัพพอร์ตได้ ต้องคอยกางโดมป้องกันแสง", "ชิ้นส่วนเงามายา (40%), ดาบเงาสลัว (2%)"],
+            [90, "โทรลภูเขา", "รอยแยกแผ่นดินไหว", "Passive", "ยักษ์ร่างอ้วนสีเทาผิวขรุขระ ถือกระบองต้นไม้", "STR:250 AGI:40 CON:300 INT:20 WIS:60 CHA:0 LUK:20", "มีสกิลฟื้นฟูเลือด (Regen) มหาศาล หากดาเมจปาร์ตี้ไม่พอตีให้ตายในชุดเดียว มันจะฮีลเต็ม", "เลือดโทรลเข้มข้น (20%), กระดูกยักษ์ (10%)"],
+            [100, "ลูกมังกรดิน", "หุบเขามังกรทอดทิ้ง", "Aggressive", "มังกรตัวเล็กเดินสี่ขา ไม่มีปีก เกล็ดแข็งปานหิน", "STR:280 AGI:90 CON:350 INT:40 WIS:80 CHA:10 LUK:50", "เกล็ดสะท้อนการโจมตีเวทมนตร์ธาตุดิน 100% ชอบมุดดินแล้วพุ่งขึ้นมางับ", "เกล็ดมังกรอ่อน (15%), เขี้ยวมังกรดิน (5%)"],
+
+            // --- Lv 101-250 : High Tier (ดันเจี้ยนระดับสูง กิลด์เริ่มใช้ที่นี่ฟาร์มกิลด์) ---
+            [120, "ซัคคิวบัสรับใช้", "ปราสาทมายาแห่งราคะ", "Aggressive", "ปีศาจสาวปีกค้างคาว ถือแส้หนัง", "STR:100 AGI:180 CON:150 INT:300 WIS:280 CHA:400 LUK:120", "ใช้สกิลยั่วยวน (Charm) ใส่แทงค์ให้หันไปตีเพื่อน ต้องมีซัพพอร์ตคอยล้างสถานะตลอดเวลา", "แส้หนังซัคคิวบัส (5%), ยาเสน่ห์ (20%)"],
+            [150, "อัศวินความตาย", "ลานประหารใต้ดิน", "Aggressive", "อัศวินกระดูกสวมเกราะทมิฬเต็มยศ ขี่ม้าผีดิบ", "STR:400 AGI:150 CON:450 INT:80 WIS:300 CHA:50 LUK:80", "วิ่งชาร์จทะลวงเกราะปาร์ตี้ให้แตกกระจาย แพ้เวทมนตร์แห่งแสงเท่านั้น กายภาพตีเข้ายากมาก", "เกราะทมิฬร้าว (10%), หอกทะลวงวิญญาณ (1%)"],
+            [180, "หนอนทรายกลืนกิน", "ทะเลทรายมรณะ (โซนลึก)", "Aggressive", "หนอนยักษ์ใต้ทราย ปากเป็นฟันเฟืองวงกลม", "STR:450 AGI:120 CON:550 INT:100 WIS:150 CHA:0 LUK:90", "ซุ่มใต้ทรายและดูดกลืนทุกอย่าง ผู้เล่นต้องยืนบนโขดหิน ห้ามยืนบนทรายนานเกิน 5 วินาที", "น้ำลายหนอนยักษ์ (30%), หนังทนความร้อน (10%)"],
+            [200, "โกเลมเพชรดิบ", "เหมืองแร่จุดลึกสุด", "Passive", "โกเลมที่เปลือกนอกหุ้มด้วยเพชรประกายแสง", "STR:300 AGI:80 CON:800 INT:50 WIS:400 CHA:10 LUK:150", "กันเวท 100% กันกายภาพ 90% ต้องใช้อาวุธประเภท 'เจาะเกราะ' หรือสายคราฟเตอร์มาขุด", "เพชรดิบ (100%), แก่นเพชรประกาย (5%)"],
+            [250, "แวมไพร์ชั้นสูง", "ปราสาทโลหิตราตรี", "Aggressive", "ขุนนางสวมชุดทักซิโด้ ท่าทางสง่างามแต่รวดเร็ว", "STR:550 AGI:600 CON:400 INT:500 WIS:450 CHA:500 LUK:200", "ดูดเลือดผู้เล่นเพื่อฮีลตัวเอง หากผู้เล่นเลือดหมดหลอดจะกลายเป็นซอมบี้หันมาตีเพื่อน", "เขี้ยวแวมไพร์แท้ (10%), เลือดบริสุทธิ์ (5%)"],
+
+            // --- Lv 251-500 : Epic Tier (มิติซ้อนทับ ผู้เล่นระดับท็อปฟาร์มที่นี่) ---
+            [300, "อสูรไฟบรรลัยกัลป์", "ประตูนรกชั้นต้น", "Swarm", "สุนัขสามหัว ร่างกายเป็นหินหนืดลาวา", "STR:750 AGI:800 CON:600 INT:200 WIS:300 CHA:50 LUK:150", "กัดทะลุเกราะ 50% และทิ้งกองไฟไว้บนพื้น จำกัดพื้นที่การเดินของปาร์ตี้", "แก่นไฟนรก (10%), โซ่ตรวนนรก (2%)"],
+            [350, "นักบวชตกสวรรค์", "วิหารแห่งการพิพากษาร้าง", "Aggressive", "นักบวชสวมชุดคลุมขาดๆ ร่ายเวทความมืด", "STR:150 AGI:300 CON:400 INT:1200 WIS:1100 CHA:300 LUK:250", "สามารถ 'ฮีล' มอนสเตอร์รอบข้างได้ ต้องส่งสายลอบสังหารไปเก็บเป็นตัวแรกของดง", "คัมภีร์นอกรีต (5%), ลูกประคำสีดำ (10%)"],
+            [400, "ไวเวิร์นเกราะเหล็ก", "ยอดเขาสูงเทียมฟ้า", "Aggressive", "มังกรมีปีก เกล็ดเป็นแร่เหล็กอาร์คาน่า", "STR:900 AGI:1200 CON:850 INT:400 WIS:500 CHA:100 LUK:300", "บินโฉบตลอดเวลา ต้องใช้เครื่องยิงฉมวกตึงให้ร่วงลงมาบนพื้นก่อนถึงจะสร้างดาเมจเต็มที่ได้", "แร่เหล็กอาร์คาน่าบริสุทธิ์ (30%), ปีกไวเวิร์น (5%)"],
+            [450, "จักรกลสังหาร", "นครจักรกลใต้พิภพ", "Swarm", "หุ่นยนต์ไซบอร์ก มีปืนเลเซอร์ติดที่แขน", "STR:800 AGI:600 CON:1000 INT:1500 WIS:800 CHA:0 LUK:200", "โจมตีระยะไกลเป็นเส้นตรงพร้อมกันหลายตัว ยิงเป็นตารางเลเซอร์หลบยากมาก", "แผงวงจรโบราณ (40%), เฟืองจักรกล (20%)"],
+            [500, "ผู้กลืนกินมิติขนาดเล็ก", "ช่องว่างมิติ", "Aggressive", "ก้อนเนื้อสีดำบิดเบี้ยว ลอยอยู่กลางอากาศ", "STR:400 AGI:1500 CON:600 INT:1800 WIS:1200 CHA:0 LUK:400", "การโจมตีจะวาร์ปทะลุโล่ของแทงค์ไปโดนซัพพอร์ตด้านหลังโดยตรง (Ignore Frontline)", "เศษซากมิติว่างเปล่า (15%), อัญมณีแห่งความว่างเปล่า (1%)"],
+
+            // --- Lv 501-800 : Mythic Tier (ผู้เล่นต้องไปเป็นปาร์ตี้ระดับประเทศ) ---
+            [600, "อัศวินโกลาหล", "สมรภูมิไร้ขอบเขต", "Aggressive", "อัศวินร่างยักษ์ 3 เมตร ชุดเกราะแผ่ออร่าสีม่วงดำ", "STR:3500 AGI:1200 CON:2800 INT:500 WIS:1500 CHA:200 LUK:500", "การโจมตีทุกฮิตมีโอกาสลบบัพ (Dispel) ของซัพพอร์ต ทำให้แทงค์ที่พึ่งบัพยืนลำบากมาก", "เกราะโกลาหลแตกหัก (5%), ดาบทลายสวรรค์ (0.5%)"],
+            [700, "มังกรวิญญาณเยือกแข็ง", "สุสานมังกรยุคน้ำแข็ง", "Passive", "โครงกระดูกมังกรที่ปกคลุมด้วยน้ำแข็ง", "STR:2000 AGI:1500 CON:2500 INT:4000 WIS:3800 CHA:100 LUK:600", "ออร่ารอบตัวทำให้ค่า AGI ของผู้เล่นลดลง 1% ทุกๆ วินาที ต้องสลับคนเข้าไปตีแล้วถอยออกมา", "กระดูกมังกรวิญญาณ (10%), แก่นน้ำแข็งนิรันดร์ (2%)"],
+            [800, "อสูรดวงดาวเร่ร่อน", "อวกาศจำลอง", "Aggressive", "สิงโตที่ร่างกายประกอบจากกลุ่มดาว", "STR:3000 AGI:4500 CON:2000 INT:3500 WIS:2500 CHA:500 LUK:1200", "วาร์ปหลบการโจมตีล็อคเป้าได้ 100% ต้องใช้สกิลโจมตีวงกว้าง (AoE) กวาดพื้นที่เท่านั้น", "ฝุ่นละอองดวงดาว (20%), เขี้ยวจักรวาล (0.1%)"],
+
+            // --- Lv 801-999 : End-Game / System Anomaly (พื้นที่ลับ หรือ รอยแยกระบบ) ---
+            [850, "เทวทูตไร้ปีก", "หอคอยแห่งพระเจ้า", "Passive", "ทูตสวรรค์ที่ถูกตัดปีก สวมหน้ากากไร้อารมณ์", "STR:5000 AGI:5000 CON:5000 INT:5000 WIS:5000 CHA:1000 LUK:1000", "สเตตัสสูงทุกด้าน ตีแรง อึด หลบเก่ง เหมือนเอาสเตตัสผู้เล่นระดับท็อปมาใส่ในมอนสเตอร์", "น้ำตาเทวทูต (5%), ขนนกศักดิ์สิทธิ์ (1%)"],
+            [900, "ผู้คุมกฎแห่งเวลา", "ปราสาทแห่งกาลเวลา", "Aggressive", "เงาร่างมนุษย์ที่ร่างกายเป็นนาฬิกาทราย", "STR:1000 AGI:3000 CON:4000 INT:8000 WIS:9000 CHA:500 LUK:2000", "สามารถร่ายเวทให้การโจมตีผู้เล่น 'ย้อนกลับ' (สะท้อนดาเมจ 100%) เป็นเวลา 2 วิ", "ทรายกาลเวลา (10%), เฟืองทองเหลืองแห่งระบบ (2%)"],
+            [950, "Error Entity (บัคระบบ)", "รอยแตกของระบบเกม", "Looter", "ก้อนพิกเซลที่แตกกระจายและส่งเสียงซ่าๆ", "STR:ERROR AGI:ERROR CON:ERROR INT:ERROR WIS:ERROR CHA:ERROR LUK:SYS_MAX", "ตีไม่เข้า 99% และมันจะวิ่งสุ่มขโมยสเตตัส (ดูด STR ไป 100 แต้มชั่วคราว) แล้ววิ่งหนี", "Data Corrupted (50%), กล่องสุ่มระดับ Admin (0.01%)"],
+            [999, "เศษเสี้ยวผู้สร้างสรรค์", "มิติ Zero", "Aggressive", "ตัวละครรูปทรงโพลีกอนสีขาวล้วน ไม่มีลวดลาย", "STR:Infinite AGI:Infinite CON:Infinite INT:Infinite WIS:Infinite CHA:0 LUK:0", "ไม่สามารถถูกฆ่าให้ตายในฮิตเดียว ต้องตีจนหลอดเลือดรีเซ็ต 10 รอบ (Mechanic Check)", "Source Code Fragment (100% สำหรับทุกคน)"]
+        ];
+
+        // Status Colors Configuration
+        const statColors = {
+            'STR': 'text-red-400 bg-red-900/40 border-red-700/50',
+            'AGI': 'text-emerald-400 bg-emerald-900/40 border-emerald-700/50',
+            'CON': 'text-orange-400 bg-orange-900/40 border-orange-700/50',
+            'INT': 'text-blue-400 bg-blue-900/40 border-blue-700/50',
+            'WIS': 'text-indigo-400 bg-indigo-900/40 border-indigo-700/50',
+            'CHA': 'text-pink-400 bg-pink-900/40 border-pink-700/50',
+            'LUK': 'text-yellow-400 bg-yellow-900/40 border-yellow-700/50'
+        };
+
+        const aggroColors = {
+            'Passive': 'bg-emerald-900/40 text-emerald-400 border-emerald-700/50',
+            'Aggressive': 'bg-red-900/40 text-red-400 border-red-700/50',
+            'Swarm': 'bg-yellow-900/40 text-yellow-400 border-yellow-700/50',
+            'Looter': 'bg-purple-900/40 text-purple-400 border-purple-700/50'
+        };
+
+        // Advanced Status Formatter Function
+        function formatStats(statStr) {
+            if (statStr.includes("ERROR") || statStr.includes("Infinite")) {
+                // Handling System Anomaly Mobs
+                return statStr.split(' ').map(s => {
+                    const [key, val] = s.split(':');
+                    let badgeStyle = statColors[key] || 'text-gray-300 bg-gray-800 border-gray-600';
+                    if(val === 'ERROR' || val === 'SYS_MAX' || val === 'Infinite') {
+                        badgeStyle = 'text-red-200 bg-red-900/80 border-red-500 animate-pulse';
+                    }
+                    return `<div class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border m-0.5 ${badgeStyle}">
+                                <span class="font-bold mr-1 opacity-80">${key}</span> 
+                                <span class="font-black drop-shadow">${val}</span>
+                            </div>`;
+                }).join('');
+            }
+
+            // Normal Stat Rendering
+            return statStr.split(' ').map(s => {
+                const [key, val] = s.split(':');
+                const style = statColors[key] || 'text-gray-300 bg-gray-800 border-gray-600';
+                return `<div class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono border m-0.5 ${style}">
+                            <span class="font-bold mr-1 opacity-80">${key}</span> 
+                            <span class="font-black drop-shadow">${val}</span>
+                        </div>`;
+            }).join('');
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            monsterData.forEach(mob => {
+                const tr = document.createElement('tr');
+                const aggroClass = aggroColors[mob[3]] || 'bg-slate-800 text-white';
+                
+                tr.innerHTML = `
+                    <td class="font-mono font-bold text-slate-300 text-center border-b border-slate-700/50 align-middle">${mob[0]}</td>
+                    <td class="font-bold text-white border-b border-slate-700/50 align-middle">${mob[1]}</td>
+                    <td class="text-blue-300 text-[11px] border-b border-slate-700/50 align-middle">${mob[2]}</td>
+                    <td class="text-center border-b border-slate-700/50 align-middle">
+                        <span class="inline-block px-2 py-0.5 text-[10px] font-bold rounded border ${aggroClass}">${mob[3]}</span>
+                    </td>
+                    <td class="text-slate-400 text-[11px] border-b border-slate-700/50 leading-tight align-middle">${mob[4]}</td>
+                    <td class="border-b border-slate-700/50 align-middle text-center">
+                        <div class="flex flex-wrap justify-center gap-0.5">${formatStats(mob[5])}</div>
+                    </td>
+                    <td class="text-slate-300 text-[11px] border-b border-slate-700/50 leading-snug align-middle">${mob[6]}</td>
+                    <td class="text-amber-300 text-[11px] border-b border-slate-700/50 font-semibold align-middle">${mob[7]}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function copyTable() {
+            // Using Tab-Separated Values for clean Paste in Google Sheets/Excel
+            let tsvContent = "Lv.\tชื่อมอนสเตอร์\tสถานที่พบ\tพฤติกรรม (Aggro)\tรูปลักษณ์ลักษณะ\tแต้มสเตตัส\tแทคติกการฟาร์ม / จุดอ่อน\tไอเทมดรอปหลัก (โอกาส)\n";
+            monsterData.forEach(row => {
+                const rowString = row.map(cell => {
+                    let text = String(cell);
+                    // Wrap with quotes if there's a tab or newline inside the content
+                    if (text.includes('\t') || text.includes('\n')) {
+                        text = `"${text.replace(/"/g, '""')}"`;
+                    }
+                    return text;
+                }).join("\t");
+                tsvContent += rowString + "\n";
+            });
+
+            const textArea = document.createElement("textarea");
+            textArea.value = tsvContent;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast();
+            } catch (err) {
+                alert("เบราว์เซอร์ไม่รองรับการคัดลอก กรุณาคลุมดำข้อความและกด Ctrl+C");
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 4000);
+        }
+
+        // Initialize Table
+        renderTable();
+    </script>
+    <button class="fixed bottom-4 center-4 bg-blue-600 text-white px-4 py-2 rounded shadow-lg hover:bg-blue-700 transition" onclick="window.location.href='index.html'">กลับไปหน้าหลัก</button>
+</body>
+</html>
